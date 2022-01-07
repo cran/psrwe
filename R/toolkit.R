@@ -1,56 +1,53 @@
-
-#' Export results into a template file
+#' @title Export results into a template file
 #'
-#' @param numbers    vector of results
-#' @param template.f template file name
-#' @param out.f      output file name
-#' @param sub.str    pattern of string to be replaced
+#' @param numbers Vector of results.
+#' @param template.f Template file name.
+#' @param out.f Output file name.
+#' @param sub.str Pattern of string to be replaced.
 #'
-#'
-#' @export
-#'
-tkExpRst <- function(numbers, template.f,  out.f="rst.txt", sub.str="AA") {
-    if (!file.exists(template.f)) {
+#' @noRd
+tkExpRst <- function(numbers, template_f,
+                     out_f = "rst.txt", sub_str = "AA") {
+    if (!file.exists(template_f)) {
         return(NULL)
     }
-    ##read
-    tpla <- readChar(template.f, file.info(template.f)$size);
+    
+    # Read template
+    tpla <- readChar(template_f, file.info(template_f)$size)
 
-    ##substitute
+    # Substitute
     for (i in 1:length(numbers)) {
-        tpla <- sub(sub.str, numbers[i], tpla);
+        tpla <- sub(sub_str, numbers[i], tpla);
     }
 
-    ##write out
-    write(tpla, file = out.f);
+    # Write out
+    write(tpla, file = out_f)
 }
 
 
-#' Import objects in a list into a designated environment
+#' @title Import objects in a list into a designated environment
 #'
-#' @param alist list of objects
-#' @param dest.env designated environment
+#' @param alist List of objects.
+#' @param dest_env Designated environment.
 #'
-#' @export
-#'
-tkMakeLocal <- function(alist, dest.env) {
+#' @noRd
+tkMakeLocal <- function(alist, dest_env) {
     for (i in 1:length(alist)) {
-        assign(names(alist[i]), alist[[i]], dest.env);
+        assign(names(alist[i]), alist[[i]], dest_env)
     }
 }
 
 
-#' Call function by its name organized as a vector
+#' @title Call function by its name organized as a vector
 #'
-#' @param vec function names as a vector
-#' @param ... Parameters needed for the actual function
+#' @param vec Function names as a vector.
+#' @param ... Parameters needed for the actual function.
 #'
-#' @export
-#'
+#' @noRd
 tkCallFun <- function(vec, ...) {
     rst <- NULL
     eval(parse(text = paste("rst <- ",
-                            paste(vec, collapse = ""),
+                            paste0(vec, collapse = ""),
                             "(...)",
                             sep = "")
                )
