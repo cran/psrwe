@@ -1,6 +1,6 @@
 Package: psrwe
 Title: PS-Integrated Methods for Incorporating RWE in Clinical Studies
-Version: 3.0
+Version: 3.1
 Authors@R: c(
     person(given = "Chenguang", family = "Wang",
            email = "chenguang.wang.0517@gmail.com",
@@ -36,7 +36,7 @@ RcppModules: stan_fit4powerp_mod, stan_fit4powerps_mod,
 Imports: parallel (>= 3.2), cowplot (>= 1.0.0), dplyr (>= 0.8.5),
         ggplot2 (>= 3.3.2), randomForest (>= 4.6-14), survival,
         rstantools (>= 2.1.1)
-Suggests: optmatch, knitr, rmarkdown
+Suggests: knitr, rmarkdown
 Encoding: UTF-8
 LazyData: true
 ByteCompile: true
@@ -44,11 +44,11 @@ SystemRequirements: GNU make
 NeedsCompilation: yes
 RoxygenNote: 7.1.2
 VignetteBuilder: knitr
-Packaged: 2022-01-06 19:49:55 UTC; chenguang.wang
+Packaged: 2022-02-28 23:21:10 UTC; chenguang.wang
 Author: Chenguang Wang [aut, cre],
   Trustees of Columbia University [cph] (tools/make_cpp.R,
     R/stanmodels.R),
   Wei-Chen Chen [aut]
 Maintainer: Chenguang Wang <chenguang.wang.0517@gmail.com>
 Repository: CRAN
-Date/Publication: 2022-01-07 16:52:42 UTC
+Date/Publication: 2022-03-01 15:20:02 UTC
