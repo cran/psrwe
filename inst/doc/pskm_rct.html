@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+<meta name="date" content="2026-01-10" />
+
+<title>Propensity Score-Integrated Survival Inference in Randomized Controlled Trials (RCTs) with Augmenting Control Arm</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Propensity Score-Integrated Survival
+Inference in Randomized Controlled Trials (RCTs) with Augmenting Control
+Arm</h1>
+<h4 class="date">2026-01-10</h4>
+
+
+
+<p><br></p>
+<div id="introduction" class="section level2">
+<h2>Introduction</h2>
+<p>In the <strong>psrwe</strong>, PS-integrated survival analyses in
+randomized controlled trials (RCTs) with an augmented control arm (Chen,
+et al., to be submitted) are also implemented in three functions:</p>
+<ul>
+<li><code>psrwe_survkm()</code> for treatment effect test (Com-Nougue,
+et al., 1993).</li>
+<li><code>psrwe_survlrk()</code> for log-rank test (Klein and
+Moeschberger, 2003; Peto and Peto, 1972).</li>
+<li><code>psrwe_survrmst()</code> for restricted mean survival time
+(RMST) test (Royston and Parmar, 2013; Uno, et al., 2014).</li>
+</ul>
+<p>These tests are non-parametric approaches for comparing two
+treatments with time-to-event endpoints. Therefore, these tests are only
+implemented for RCTs with augmenting control arm.</p>
+<p>Similar to the approaches: PSPP (Wang, et al., 2019), PSCL (Wang, et
+al., 2020), and PSKM (Chen, et al., 2022), the PS-integrated study
+design functions, <code>psrwe_est()</code> and
+<code>psrwe_borrow()</code>, below estimate the PS model, set borrowing
+parameters, and determine discounting parameters for borrowing
+information for a two-arm RCT with an augmented control arm from
+RWD.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">data</span>(ex_dta_rct)</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a>dta_ps_rct <span class="ot">&lt;-</span> <span class="fu">psrwe_est</span>(ex_dta_rct,</span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a>                        <span class="at">v_covs =</span> <span class="fu">paste</span>(<span class="st">&quot;V&quot;</span>, <span class="dv">1</span><span class="sc">:</span><span class="dv">7</span>, <span class="at">sep =</span> <span class="st">&quot;&quot;</span>),</span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a>                        <span class="at">v_grp =</span> <span class="st">&quot;Group&quot;</span>, <span class="at">cur_grp_level =</span> <span class="st">&quot;current&quot;</span>,</span>
+<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a>                        <span class="at">v_arm =</span> <span class="st">&quot;Arm&quot;</span>, <span class="at">ctl_arm_level =</span> <span class="st">&quot;control&quot;</span>,</span>
+<span id="cb1-6"><a href="#cb1-6" tabindex="-1"></a>                        <span class="at">ps_method =</span> <span class="st">&quot;logistic&quot;</span>, <span class="at">nstrata =</span> <span class="dv">5</span>,</span>
+<span id="cb1-7"><a href="#cb1-7" tabindex="-1"></a>                        <span class="at">stra_ctl_only =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb1-8"><a href="#cb1-8" tabindex="-1"></a>ps_bor_rct <span class="ot">&lt;-</span> <span class="fu">psrwe_borrow</span>(dta_ps_rct, <span class="at">total_borrow =</span> <span class="dv">30</span>)</span></code></pre></div>
+<p><br></p>
+</div>
+<div id="ps-integrated-treatment-effect-test" class="section level2">
+<h2>PS-integrated treatment effect test</h2>
+<p>Similar to the single arm study example (in
+<strong>psrwe/demo/sec_4_4_ex.r</strong> and
+<code>demo(&quot;sec_4_5_ex&quot;, package = &quot;psrwe&quot;)</code>), the code below
+evaluates a two-arm RCT. The results show the treatment effect which is
+the survival difference between the two arms at 1 year (365 days).</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a>rst_km_rct <span class="ot">&lt;-</span> <span class="fu">psrwe_survkm</span>(ps_bor_rct,</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>                           <span class="at">pred_tp =</span> <span class="dv">365</span>,</span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>                           <span class="at">v_time =</span> <span class="st">&quot;Y_Surv&quot;</span>,</span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a>                           <span class="at">v_event =</span> <span class="st">&quot;Status&quot;</span>)</span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a>rst_km_rct</span></code></pre></div>
+<pre><code>## With a total of 30 subject borrowed from the RWD, based on 
+## the survival probability at time 365, the treatment effect 
+## is 0.144 with standard error 0.054.</code></pre>
+<p>The estimated PSKM curves with confidence intervals are shown
+below.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="fu">plot</span>(rst_km_rct, <span class="at">xlim =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">730</span>))</span></code></pre></div>
+<pre><code>## Warning: Removed 576 rows containing missing values or values outside the scale range
+## (`geom_step()`).
+## Removed 576 rows containing missing values or values outside the scale range
+## (`geom_step()`).
+## Removed 576 rows containing missing values or values outside the scale range
+## (`geom_step()`).</code></pre>
+<p><img src="data:image/png;base64,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" /><!-- --></p>
+<p>The inference is based on the treatment effect <span class="math inline">\(S_{trt}(\tau) - S_{ctl}(\tau)\)</span> at <span class="math inline">\(\tau = 365\)</span> days where <span class="math inline">\(S_{trt}\)</span> and <span class="math inline">\(S_{ctl}\)</span> are the survival probabilities of
+the treatment and control arms, respectively. In other words, the
+example tests <span class="math display">\[
+H_0: S_{trt}(\tau) - S_{ctl}(\tau) \leq 0 \quad \mbox{vs.} \quad
+H_a: S_{trt}(\tau) - S_{ctl}(\tau) &gt; 0 .
+\]</span> The outcome analysis can be summarized below. Note that this
+is a one-sided test.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a>oa_km_rct <span class="ot">&lt;-</span> <span class="fu">psrwe_outana</span>(rst_km_rct, <span class="at">alternative =</span> <span class="st">&quot;greater&quot;</span>)</span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a>oa_km_rct</span></code></pre></div>
+<pre><code>## - Method: ps_km, Outcome Type: tte, Study Type: RCT
+## - Predict Time Point: 365
+## - StdErr Method: naive
+## - Interval Method: wald, Level: 0.95, Type: plain
+## - Test Method: p_value, Method pval: wald
+##   H0: theta_trt-theta_ctl &lt;= 0.000 vs. Ha: theta_trt-theta_ctl &gt; 0.000
+## - Analysis Results:
+##  Stratum  Mean StdErr   T Lower Upper p.value
+##  Overall 0.144 0.0541 365 0.038  0.25 0.00388</code></pre>
+<p>The details of the estimates for each arm can be printed via the
+<code>print()</code> function with the option
+<code>show_rct = TRUE</code>.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a><span class="fu">print</span>(oa_km_rct, <span class="at">show_rct =</span> <span class="cn">TRUE</span>)</span></code></pre></div>
+<pre><code>## - Method: ps_km, Outcome Type: tte, Study Type: RCT
+## - Predict Time Point: 365
+## - StdErr Method: naive
+## - Interval Method: wald, Level: 0.95, Type: plain
+## - Test Method: p_value, Method pval: wald
+##   H0: theta_trt-theta_ctl &lt;= 0.000 vs. Ha: theta_trt-theta_ctl &gt; 0.000
+## - Analysis Results:
+##  Stratum  Mean StdErr   T Lower Upper p.value
+##  Overall 0.144 0.0541 365 0.038  0.25 0.00388
+## - RCT Treatment Arm:
+##  Stratum  Mean StdErr   T Lower Upper
+##  Overall 0.822 0.0384 365 0.732 0.885
+## - RCT Control Arm:
+##  Stratum  Mean StdErr   T Lower Upper
+##  Overall 0.674 0.0376 365 0.594 0.741</code></pre>
+<p>As the <strong>survival</strong> package, the results of other time
+points can be also predicted via the <code>summary()</code> with the
+option <code>pred_tps</code>.</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="fu">summary</span>(oa_km_rct, <span class="at">pred_tps =</span> <span class="fu">c</span>(<span class="dv">180</span>, <span class="dv">365</span>))</span></code></pre></div>
+<pre><code>## - Method: ps_km, Outcome Type: tte, Study Type: RCT
+## - Predict Time Point: 180 365
+## - StdErr Method: naive
+## - Interval Method: wald, Level: 0.95, Type: plain
+## - Test Method: p_value, Method pval: wald
+##   H0: theta_trt-theta_ctl &lt;= 0.000 vs. Ha: theta_trt-theta_ctl &gt; 0.000
+## - Analysis Results:
+##  Stratum   Mean StdErr   T   Lower Upper p.value
+##  Overall 0.0678 0.0416 180 -0.0136 0.149 0.05136
+##  Overall 0.1441 0.0541 365  0.0380 0.250 0.00388</code></pre>
+<p><br></p>
+</div>
+<div id="ps-integrated-log-rank-test" class="section level2">
+<h2>PS-integrated log-rank test</h2>
+<p>The log-rank test is another way to compare two treatments of
+time-to-event endpoint. Similar to the PSKM for the two-arm test above,
+the function <code>psrwe_survlrk()</code> computes the statistic for
+each distinctive time point beased on the observed data, then it returns
+all necessary results for the downstream analyses, such as tests and
+confidence intervals.</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a>rst_lrk <span class="ot">&lt;-</span> <span class="fu">psrwe_survlrk</span>(ps_bor_rct,</span>
+<span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a>                         <span class="at">pred_tp =</span> <span class="dv">365</span>,</span>
+<span id="cb12-3"><a href="#cb12-3" tabindex="-1"></a>                         <span class="at">v_time =</span> <span class="st">&quot;Y_Surv&quot;</span>,</span>
+<span id="cb12-4"><a href="#cb12-4" tabindex="-1"></a>                         <span class="at">v_event =</span> <span class="st">&quot;Status&quot;</span>)</span>
+<span id="cb12-5"><a href="#cb12-5" tabindex="-1"></a>rst_lrk</span></code></pre></div>
+<pre><code>## With a total of 30 subject borrowed from the RWD, based on 
+## the survival probability at time 365, the log-rank 
+## statistic is -1.760 with standard error 0.744.</code></pre>
+<p>The inference is based on the log-rank method to test whether two
+survival distributions are different from each other. The example tests
+<span class="math display">\[
+H_0: S_{trt}(t) = S_{ctl}(t) \quad \mbox{vs.} \quad
+H_a: S_{trt}(t) \neq S_{ctl}(t) 0
+\]</span> for all <span class="math inline">\(t \leq \tau\)</span> where
+<span class="math inline">\(\tau = 365\)</span> days. The outcome
+analysis can be summarized below.</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" tabindex="-1"></a>oa_lrk <span class="ot">&lt;-</span> <span class="fu">psrwe_outana</span>(rst_lrk)</span>
+<span id="cb14-2"><a href="#cb14-2" tabindex="-1"></a>oa_lrk</span></code></pre></div>
+<pre><code>## - Method: ps_lrk, Outcome Type: tte, Study Type: RCT
+## - Predict Time Point: 365
+## - StdErr Method: naive
+## - Interval Method: wald, Level: 0.95, Type: plain
+## - Test Method: p_value, Method pval: wald
+##   H0: sum[d_trt-E(d_trt)] == 0.000 vs. Ha: sum[d_trt-E(d_trt)] != 0.000
+## - Analysis Results:
+##  Stratum  Mean StdErr   T Lower  Upper p.value
+##  Overall -1.76  0.744 365 -3.22 -0.301  0.0181</code></pre>
+<p>The details of the estimates for each arm can be printed via the
+<code>print()</code> function with the option
+<code>show_rct = TRUE</code>.</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" tabindex="-1"></a><span class="fu">print</span>(oa_lrk, <span class="at">show_details =</span> <span class="cn">TRUE</span>)</span></code></pre></div>
+<pre><code>## - Method: ps_lrk, Outcome Type: tte, Study Type: RCT
+## - Predict Time Point: 365
+## - StdErr Method: naive
+## - Interval Method: wald, Level: 0.95, Type: plain
+## - Test Method: p_value, Method pval: wald
+##   H0: sum[d_trt-E(d_trt)] == 0.000 vs. Ha: sum[d_trt-E(d_trt)] != 0.000
+## - Analysis Results:
+##    Stratum   Mean StdErr   T Lower  Upper p.value
+##  Stratum 1 -2.820  1.736 365 -6.22  0.583  0.1044
+##  Stratum 2 -0.308  1.704 365 -3.65  3.033  0.8567
+##  Stratum 3 -1.829  1.703 365 -5.17  1.508  0.2826
+##  Stratum 4 -4.052  1.646 365 -7.28 -0.825  0.0138
+##  Stratum 5  0.208  1.525 365 -2.78  3.198  0.8916
+##    Overall -1.760  0.744 365 -3.22 -0.301  0.0181</code></pre>
+<p>As the <strong>survival</strong> package, the results of other time
+points can be also predicted via the <code>summary()</code> with the
+option <code>pred_tps</code>.</p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" tabindex="-1"></a><span class="fu">summary</span>(oa_lrk, <span class="at">pred_tps =</span> <span class="fu">c</span>(<span class="dv">180</span>, <span class="dv">365</span>))</span></code></pre></div>
+<pre><code>## - Method: ps_lrk, Outcome Type: tte, Study Type: RCT
+## - Predict Time Point: 180 365
+## - StdErr Method: naive
+## - Interval Method: wald, Level: 0.95, Type: plain
+## - Test Method: p_value, Method pval: wald
+##   H0: sum[d_trt-E(d_trt)] == 0.000 vs. Ha: sum[d_trt-E(d_trt)] != 0.000
+## - Analysis Results:
+##  Stratum   Mean StdErr   T Lower  Upper p.value
+##  Overall -0.801  0.534 180 -1.85  0.247  0.1341
+##  Overall -1.760  0.744 365 -3.22 -0.301  0.0181</code></pre>
+<p><br></p>
+</div>
+<div id="ps-integrated-restricted-mean-survival-time-rmst-test" class="section level2">
+<h2>PS-integrated restricted mean survival time (RMST) test</h2>
+<p>The restricted means survival time (RMST) tests whether areas under
+two survival distributions (AUC) are different from each other. Similar
+to the log-rank test above, the function <code>psrwe_survrmst()</code>
+computes the statistic for each distinctive time point beased on the
+observed data, then it returns all necessary results for the downstream
+analyses, such as tests and confidence intervals.</p>
+<div class="sourceCode" id="cb20"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" tabindex="-1"></a>rst_rmst <span class="ot">&lt;-</span> <span class="fu">psrwe_survrmst</span>(ps_bor_rct,</span>
+<span id="cb20-2"><a href="#cb20-2" tabindex="-1"></a>                           <span class="at">pred_tp =</span> <span class="dv">365</span>,</span>
+<span id="cb20-3"><a href="#cb20-3" tabindex="-1"></a>                           <span class="at">v_time =</span> <span class="st">&quot;Y_Surv&quot;</span>,</span>
+<span id="cb20-4"><a href="#cb20-4" tabindex="-1"></a>                           <span class="at">v_event =</span> <span class="st">&quot;Status&quot;</span>)</span>
+<span id="cb20-5"><a href="#cb20-5" tabindex="-1"></a>rst_rmst</span></code></pre></div>
+<pre><code>## With a total of 30 subject borrowed from the RWD, based on 
+## the survival probability at time 365, the RMST statistic is 
+## 26.111 with standard error 13.863.</code></pre>
+<p>The inference is based on comparing whether AUCs are different from
+each other. The example tests <span class="math display">\[
+H_0: \int_0^{\tau} S_{trt}(t) dt = \int_0^{\tau} S_{ctl}(t) dt
+\quad \mbox{vs.} \quad
+H_a: \int_0^{\tau} S_{trt}(t) dt \neq \int_0^{\tau} S_{ctl}(t) dt
+\]</span> where <span class="math inline">\(\tau = 365\)</span> days.
+The outcome analysis can be summarized below. Note that this is a
+two-sided test.</p>
+<div class="sourceCode" id="cb22"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" tabindex="-1"></a>oa_rmst <span class="ot">&lt;-</span> <span class="fu">psrwe_outana</span>(rst_rmst)</span>
+<span id="cb22-2"><a href="#cb22-2" tabindex="-1"></a>oa_rmst</span></code></pre></div>
+<pre><code>## - Method: ps_rmst, Outcome Type: tte, Study Type: RCT
+## - Predict Time Point: 365
+## - StdErr Method: naive
+## - Interval Method: wald, Level: 0.95, Type: plain
+## - Test Method: p_value, Method pval: wald
+##   H0: auc(S_trt)-auc(S_ctl) == 0.000 vs. Ha: auc(S_trt)-auc(S_ctl) != 0.000
+## - Analysis Results:
+##  Stratum Mean StdErr   T Lower Upper p.value
+##  Overall 26.1   13.9 365 -1.06  53.3  0.0596</code></pre>
+<p>The details of the estimates for each arm can be printed via the
+<code>print()</code> function with the option
+<code>show_rct = TRUE</code>.</p>
+<div class="sourceCode" id="cb24"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" tabindex="-1"></a><span class="fu">print</span>(oa_rmst, <span class="at">show_details =</span> <span class="cn">TRUE</span>)</span></code></pre></div>
+<pre><code>## - Method: ps_rmst, Outcome Type: tte, Study Type: RCT
+## - Predict Time Point: 365
+## - StdErr Method: naive
+## - Interval Method: wald, Level: 0.95, Type: plain
+## - Test Method: p_value, Method pval: wald
+##   H0: auc(S_trt)-auc(S_ctl) == 0.000 vs. Ha: auc(S_trt)-auc(S_ctl) != 0.000
+## - Analysis Results:
+##    Stratum   Mean StdErr   T  Lower Upper p.value
+##  Stratum 1  34.40   29.5 365 -23.43  92.2  0.2437
+##  Stratum 2 -11.22   35.9 365 -81.51  59.1  0.7544
+##  Stratum 3  38.38   24.9 365 -10.38  87.1  0.1229
+##  Stratum 4  63.40   29.8 365   5.00 121.8  0.0334
+##  Stratum 5   5.59   33.8 365 -60.60  71.8  0.8684
+##    Overall  26.11   13.9 365  -1.06  53.3  0.0596</code></pre>
+<p>As the <strong>survival</strong> package, the results of other time
+points can be also predicted via the <code>summary()</code> with the
+option <code>pred_tps</code>.</p>
+<div class="sourceCode" id="cb26"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" tabindex="-1"></a><span class="fu">summary</span>(oa_rmst, <span class="at">pred_tps =</span> <span class="fu">c</span>(<span class="dv">180</span>, <span class="dv">365</span>))</span></code></pre></div>
+<pre><code>## - Method: ps_rmst, Outcome Type: tte, Study Type: RCT
+## - Predict Time Point: 180 365
+## - StdErr Method: naive
+## - Interval Method: wald, Level: 0.95, Type: plain
+## - Test Method: p_value, Method pval: wald
+##   H0: auc(S_trt)-auc(S_ctl) == 0.000 vs. Ha: auc(S_trt)-auc(S_ctl) != 0.000
+## - Analysis Results:
+##  Stratum  Mean StdErr   T Lower Upper p.value
+##  Overall  5.79   5.66 180 -5.30  16.9  0.3063
+##  Overall 26.11  13.86 365 -1.06  53.3  0.0596</code></pre>
+<p><br></p>
+</div>
+<div id="demo-examples" class="section level2">
+<h2>Demo examples</h2>
+<p>The scripts in “<strong>psrwe/demo/sec_4_5_ex.r</strong>”,
+“<strong>psrwe/demo/sec_4_6_ex.r</strong>”, and
+“<strong>psrwe/demo/sec_4_7_ex.r</strong>” source files have the full
+examples for the PS-integrated survival analyses, which can be run via
+the <code>demo(&quot;sec_4_5_ex&quot;, package = &quot;psrwe&quot;)</code>,
+<code>demo(&quot;sec_4_6_ex&quot;, package = &quot;psrwe&quot;)</code>, and
+<code>demo(&quot;sec_4_7_ex&quot;, package = &quot;psrwe&quot;)</code>, respectively.</p>
+<p>Two Jackknife standard errors are also demonstrated for each test
+method. Note that Jackknife standard errors may take a while to finish.
+<br></p>
+</div>
+<div id="references" class="section level2">
+<h2>References</h2>
+<ol style="list-style-type: decimal">
+<li><p>Chen, W.-C., Lu, N., Wang, C., Li, H., Song, C., Tiwari, R., Xu,
+Y., and Yue, L.Q. (to be submitted). Propensity Score-Integrated
+Statistical Tests for Survival Analysis: Leveraging External Evidence
+for Augmenting the Control Arm of a Randomized Controlled
+Trial.</p></li>
+<li><p>Chen, W.-C., Lu, N., Wang, C., Li, H., Song, C., Tiwari, R., Xu,
+Y., and Yue, L.Q. (2022). Propensity Score-Integrated Approach to
+Survival Analysis: Leveraging External Evidence in Single-Arm Studies.
+Journal of Biopharmaceutical Statistics, 32(3), 400-413.</p></li>
+<li><p>Com-Nougue, C., Rodary, C. and Patte, C. (1993). How to establish
+equivalence when data are censored: A randomized trial of treatments for
+B non-Hodgkin lymphoma. Statist. Med., Volume 12,
+pp. 1353-1364.</p></li>
+<li><p>Klein, J. and Moeschberger, M. (2003). Survival Analysis:
+Techniques for Censored and Truncated Data. 2nd ed. New York:
+Springer.</p></li>
+<li><p>Peto, R. and Peto, J. (1972). Asymptotically Efficient Rank
+Invariant Test Procedures. Journal of the Royal Statistical Society,
+Series A, 135(2), 185-207.</p></li>
+<li><p>Royston, P. and Parmar, M. K. (2013). Restricted mean survival
+time: an alternative to the hazard ratio for the design and analysis of
+randomized trials with a time-to-event outcome. BMC Med Res Methodol,
+13(152).</p></li>
+<li><p>Uno, H., et al., (2014). Moving beyond the hazard ratio in
+quantifying the between-group difference in survival analysis. Journal
+of clinical oncology, Volume 32, 2380-2385.</p></li>
+<li><p>Wang, C., Li, H., Chen, W. C., Lu, N., Tiwari, R., Xu, Y., and
+Yue, L.Q. (2019). Propensity score-integrated power prior approach for
+incorporating real-world evidence in single-arm clinical studies.
+Journal of Biopharmaceutical Statistics, 29(5), 731-748.</p></li>
+<li><p>Wang, C., Lu, N., Chen, W. C., Li, H., Tiwari, R., Xu, Y., and
+Yue, L.Q. (2020). Propensity score-integrated composite likelihood
+approach for incorporating real-world evidence in single-arm clinical
+studies. Journal of Biopharmaceutical Statistics, 30(3),
+495-507.</p></li>
+</ol>
+<p><br></p>
+<p><br></p>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

@@ -1,6 +1,6 @@
 ### Example of Section 4.2.
 suppressMessages(library(psrwe, quietly = TRUE))
-options(digits = 3)
+org_digits <- options(digits = 3)
 data(ex_dta_rct)
 
 ### First parts of Data.
@@ -35,8 +35,16 @@ rst_cl_rct
 oa_cl_rct <- psrwe_outana(rst_cl_rct, alternative = "greater")
 print(oa_cl_rct, show_rct = TRUE)
 
+### Use simple Jackknife stderr. This may take a while longer.
+rst_cl_rct_jko <- psrwe_compl(ps_bor_rct,
+                              outcome_type = "continuous",
+                              v_outcome = "Y_Con",
+                              stderr_method = "sjk")
+oa_cl_rct_jko <- psrwe_outana(rst_cl_rct_jko, alternative = "greater")
+print(oa_cl_rct_jko, show_rct = TRUE)
+
 ### PSPP, two-arm RCT, continuous outcome.
-options(mc.cores = 1)
+org_mc.cores <- options(mc.cores = 1)
 .msg <- capture.output({ suppressWarnings({
 rst_pp_rct <- psrwe_powerp(ps_bor_rct,
                            outcome_type = "continuous",
@@ -51,4 +59,7 @@ plot(rst_pp_rct, add_stratum = TRUE, split_rct_arm = TRUE)
 ### Outcome analysis.
 oa_pp_rct <- psrwe_outana(rst_pp_rct, alternative = "greater")
 print(oa_pp_rct, show_rct = TRUE)
+
+### Reset to user's options.
+options(c(org_digits, org_mc.cores))
 

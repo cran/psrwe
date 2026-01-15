@@ -1,17 +1,33 @@
 #' PS-Integrated Composite Likelihood Estimation
 #'
 #' Estimate the mean of the outcome based on PS-integrated composite likelihood
-#' approach. Variance is estimated by Jack-Knife method. Applies to the case
+#' approach. Variance is estimated by the Jackknife method. Applies to the case
 #' when there is only one external data source.
 #'
 #' @inheritParams psrwe_powerp
 #'
+#' @param stderr_method Method for computing StdErr, see Details
+#' @param n_bootstrap Number of bootstrap samples (for bootstrap stderr)
 #' @param ... Parameters for \code{rwe_cl}
+#'
+#' @details \code{stderr_method} include \code{jk} as default
+#'     using the Jackknife method within each stratum,
+#'     \code{sjk} for simple Jackknife method for combined estimates
+#'     such as point estimates in single-arm or treatment effects in RCT, or
+#'     \code{cjk} for complex Jackknife method including refitting PS model,
+#'     matching, trimming, calculating borrowing parameters, and
+#'     combining overall estimates.
+#'     Note that \code{sjk} may take a while longer to finish and
+#'     \code{cjk} will take even much longer to finish.
+#'     The \code{sbs} and \code{cbs} is for simple and complex Bootstrap
+#'     methods.
 #'
 #' @return A data frame with class name \code{PSRWE_RST}. It contains the
 #'     composite estimation of the mean for each stratum as well as the
-#'     jackknife estimation for each subject. The results should be further
+#'     jackknife estimation for each subject. The results can be further
 #'     summarized by its S3 method \code{summary}.
+#'     The results can also be analyzed by \code{psrwe_outana} for outcome
+#'     analysis and inference.
 #'
 #' @examples
 #' data(ex_dta)
@@ -27,6 +43,9 @@
 #'
 psrwe_compl <- function(dta_psbor, v_outcome = "Y",
                       outcome_type = c("continuous", "binary"),
+                      stderr_method = c("jk", "sjk", "cjk",
+                                        "sbs", "cbs", "none"), 
+                      n_bootstrap = 200,
                       ...) {
 
     ## check
@@ -37,16 +56,51 @@ psrwe_compl <- function(dta_psbor, v_outcome = "Y",
 
     stopifnot(v_outcome %in% colnames(dta_psbor$data))
 
+    stderr_method <- match.arg(stderr_method)
+
     ## observed
     rst_obs <- get_observed(dta_psbor$data, v_outcome)
 
     ## call estimation
-    rst <- get_ps_cl_km(dta_psbor, v_outcome = v_outcome,
-                        outcome_type = outcome_type,
-                        f_stratum = get_cl_stratum, ...)
+    if (stderr_method[1] %in% c("jk", "none")) {
+        rst <- get_ps_cl_km(dta_psbor, v_outcome = v_outcome,
+                            outcome_type = outcome_type,
+                            f_stratum = get_cl_stratum,
+                            stderr_method = stderr_method,
+                            ...)
+    } else if (stderr_method[1] %in% c("sjk")) {
+        rst <- get_ps_cl_km_sjk(dta_psbor, v_outcome = v_outcome,
+                                outcome_type = outcome_type,
+                                f_stratum = get_cl_stratum,
+                                stderr_method = "none",
+                                ...)
+    } else if (stderr_method[1] %in% c("cjk")) {
+        rst <- get_ps_cl_km_cjk(dta_psbor, v_outcome = v_outcome,
+                                outcome_type = outcome_type,
+                                f_stratum = get_cl_stratum,
+                                stderr_method = "none",
+                                ...)
+    } else if (stderr_method[1] %in% c("sbs")) {
+        rst <- get_ps_cl_km_sbs(dta_psbor, v_outcome = v_outcome,
+                                outcome_type = outcome_type,
+                                f_stratum = get_cl_stratum,
+                                stderr_method = "none",
+                                n_bootstrap = n_bootstrap,
+                                ...)
+    } else if (stderr_method[1] %in% c("cbs")) {
+        rst <- get_ps_cl_km_cbs(dta_psbor, v_outcome = v_outcome,
+                                outcome_type = outcome_type,
+                                f_stratum = get_cl_stratum,
+                                stderr_method = "none",
+                                n_bootstrap = n_bootstrap,
+                                ...)
+    } else {
+        stop("stderr_errmethod is not implemented.")
+    }
 
     ## return
     rst$Observed <- rst_obs
+    rst$stderr_method <- stderr_method
     rst$Method   <- "ps_cl"
     rst$Outcome_type <- outcome_type
     class(rst)   <- get_rwe_class("ANARST")
@@ -57,13 +111,13 @@ psrwe_compl <- function(dta_psbor, v_outcome = "Y",
 
 #' Composite Likelihood Estimation
 #'
-#' Estimate parameter of interest based composite likelihood for a single PS
+#' Estimate parameter of interest based on composite likelihood for a single PS
 #' stratum
 #'
 #' @inheritParams psrwe_powerp
 #'
-#' @param dta_cur Vector of outcome from a PS stratum in current study
-#' @param dta_ext Vector of outcome from a PS stratum in external data source
+#' @param dta_cur Vector of outcome from a PS stratum in the current study
+#' @param dta_ext Vector of outcome from a PS stratum in the external data source
 #' @param n_borrow Number of subjects to be borrowed
 #' @param equal_sd Boolean. whether sd is the same between the current study and
 #'     external data source
@@ -123,7 +177,7 @@ rwe_cl <- function(dta_cur, dta_ext, n_borrow = 0,
     if (0 == n_borrow) {
         ## placeholder
         dta_ext  <- dta_cur
-        equal_sd <- TRUE;
+        equal_sd <- TRUE
     }
 
     init_theta <- (n1 / (n1 + n_borrow)) * mean(dta_cur) +
@@ -147,47 +201,53 @@ rwe_cl <- function(dta_cur, dta_ext, n_borrow = 0,
 }
 
 
-#' Get estimation for each stratum
+#' Get CL estimation for each stratum
 #'
 #'
 #' @noRd
 #'
-get_cl_stratum <- function(d1, d0 = NULL, n_borrow = 0, outcome_type, ...) {
+get_cl_stratum <- function(d1, d0 = NULL, n_borrow = 0, outcome_type,
+                           stderr_method = "jk", ...) {
 
     ## treatment or control only
     dta_cur <- d1
     ns1     <- length(dta_cur)
     if (0 == n_borrow | is.null(d0)) {
         theta    <- mean(dta_cur)
-        sd_theta <- switch(outcome_type,
-                           continuous = sd(dta_cur),
-                           binary     = sqrt(theta * (1 - theta) / ns1))
+        stderr_theta <- switch(outcome_type,
+                               continuous = sd(dta_cur) / sqrt(ns1),
+                               binary     = sqrt(theta * (1 - theta) / ns1))
 
-        return(c(theta, sd_theta))
+        return(c(theta, stderr_theta))
     }
 
     ## overall ps-cl
     dta_ext <- d0
     ns0     <- length(dta_ext)
 
-    ##  overall estimate
+    ## overall estimate
     overall_theta  <- rwe_cl(dta_cur, dta_ext, n_borrow, ...)
 
-    ##jackknife
-    jk_theta <- NULL
-    for (j in seq_len(ns1)) {
-        cur_jk   <- rwe_cl(dta_cur[-j], dta_ext, n_borrow, ...)
-        jk_theta <- c(jk_theta, cur_jk)
-    }
-
-    if (ns0 > 0) {
-        for (j in seq_len(ns0)) {
-            cur_jk <- rwe_cl(dta_cur, dta_ext[-j], n_borrow, ...)
+    ## jackknife stderr
+    if (stderr_method == "jk") {
+        jk_theta <- NULL
+        for (j in seq_len(ns1)) {
+            cur_jk   <- rwe_cl(dta_cur[-j], dta_ext, n_borrow, ...)
             jk_theta <- c(jk_theta, cur_jk)
         }
+
+        if (ns0 > 0) {
+            for (j in seq_len(ns0)) {
+                cur_jk <- rwe_cl(dta_cur, dta_ext[-j], n_borrow, ...)
+                jk_theta <- c(jk_theta, cur_jk)
+            }
+        }
+
+        stderr_theta <- get_jk_sd(overall_theta, jk_theta)
+    } else {
+        stderr_theta <- NA
     }
 
     ## summary
-    sd_theta <- get_jk_sd(overall_theta, jk_theta)
-    return(c(overall_theta, sd_theta))
+    return(c(overall_theta, stderr_theta))
 }

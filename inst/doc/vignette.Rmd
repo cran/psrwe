@@ -24,7 +24,7 @@ real-world evidence in clinical study design and analysis.
 
 The approaches implemented in **psrwe** are mostly based on propensity score
 adjustment. Estimation of propensity scores can be done by using the function
-**rwe_ps**.
+**psrwe_est**.
 
 ```{r, eval=T, echo=TRUE}
 data(ex_dta)
@@ -66,7 +66,8 @@ interest.
 ps_bor <- psrwe_borrow(dta_ps, total_borrow = 40,
                         method = "distance")
 rst_pp <- psrwe_powerp(ps_bor, v_outcome = "Y_Bin",
-                        outcome_type = "binary")
+                        outcome_type = "binary",
+                        seed = 1234)
 ```
 
 Results can be further summarized as:
@@ -116,6 +117,12 @@ rst_cl_rct <- psrwe_compl(ps_bor_rct, v_outcome = "Y_Con",
 
 rst_cl_rct$Effect
 ```
+
+# Demo examples
+
+The full examples for the PSPP and PSCL approaches can be found via
+the script `demo("sec_4_1_ex", package = "psrwe")` and
+`demo("sec_4_2_ex", package = "psrwe")`.
 
 
 # Reference

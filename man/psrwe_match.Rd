@@ -11,6 +11,7 @@ psrwe_match(
   caliper = 1,
   seed = NULL,
   method = c("nnwor", "optm"),
+  .drop_arg_fml = FALSE,
   ...
 )
 }
@@ -18,24 +19,27 @@ psrwe_match(
 \item{dta_ps}{A list of class \code{PSRWE_DAT} that is generated using the
 \code{\link{psrwe_est}} function.}
 
-\item{ratio}{Matching ratio (RWD : Current) with default value 3 meaning 3:1
-matching.}
+\item{ratio}{Matching ratio (RWD : Current). Default is 3
+(i.e., 3:1 matching).}
 
-\item{strata_covs}{Stratification covariates for matching.}
+\item{strata_covs}{Covariates used for stratification in matching.}
 
 \item{caliper}{PS matching caliper width. Default 1. This specifies a
-width (euclidean distance) on the probability scale.}
+width (Euclidean distance) on the probability scale.}
 
 \item{seed}{Random seed.}
 
 \item{method}{matching algorithm for PS matching.}
+
+\item{.drop_arg_fml}{internal use to drop arguments and call, this is
+only used in cjk.}
 
 \item{...}{Additional parameters for matching}
 }
 \value{
 A list of class \code{PSRWE_DTA_MAT} with items:
 
-\itemize{
+\describe{
 
 \item{data}{Original data with column \code{_ps_} for estimated PS scores,
   \code{match_id} for matched current study subject ID, and \code{_strata_}
@@ -47,8 +51,8 @@ A list of class \code{PSRWE_DTA_MAT} with items:
 }
 }
 \description{
-Match patients in external data source with patients in current
-    study based on PS using nearest neighbor method.
+Match patients in the external data source with patients in
+    the current study based on PS using the nearest neighbor method.
 }
 \examples{
 data(ex_dta)
@@ -56,9 +60,15 @@ dta_ps <- psrwe_est(ex_dta,
                      v_covs = paste("V", 1:7, sep = ""),
                      v_grp = "Group",
                      cur_grp_level = "current")
-dta_ps_mat <- psrwe_match(dta_ps, ratio = 2, strata_covs = "V1",
-                           seed = 123)
-dta_ps_mat
+
+## With neighest neighbor
+.remark_nnmatch <- function() {
+  dta_ps_mat <- psrwe_match(dta_ps, ratio = 2, strata_covs = "V1",
+                            seed = 123)
+  dta_ps_mat
+}
+## Unmark below to run
+# .remark_nnmatch()
 
 ## With optmatch
 .remark_optmatch <- function() {

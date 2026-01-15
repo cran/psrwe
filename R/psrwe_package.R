@@ -1,6 +1,8 @@
 #' PS-Integrated Methods for Incorporating RWE in Clinical Studies
 #'
-#' @docType   package
+#' @keywords internal
+"_PACKAGE"
+## @docType   package
 #' @name      psrwe-package
 #' @aliases   psrwe
 #' @useDynLib psrwe, .registration = TRUE
@@ -11,6 +13,7 @@
 #' @import rstantools
 #' @importFrom stats approxfun as.formula binomial cov density ecdf glm
 #'     integrate optim predict quantile sd var ks.test qnorm pnorm
+#'     rbeta rnorm
 #' @importFrom rstan sampling extract stanc rstan_options traceplot stan_rhat
 #' @importFrom randomForest randomForest
 #' @importFrom grDevices colors
@@ -23,7 +26,7 @@
 #'
 #' @description
 #'
-#' This package provide R functions for conducting clinical studies with
+#' This package provides R functions for conducting clinical studies with
 #' real-world evidence (RWE) incorporated in the study design and analysis.
 #'
 #' @section PS-integrated power prior:
@@ -31,7 +34,7 @@
 #' We extend the Bayesian power prior approach for a single-arm study (the
 #' current study) to leverage external real-world data (RWD). We use propensity
 #' score methodology to pre-select a subset of real-world data containing
-#' patients that are similar to those in the current study in terms of
+#' patients who are similar to those in the current study in terms of
 #' covariates, and to stratify the selected patients together with those in the
 #' current study into more homogeneous strata. The power prior approach is then
 #' applied in each stratum to obtain stratum-specific posterior distributions,
@@ -44,7 +47,7 @@
 #' developed for cases in which the control arm of a two-arm randomized
 #' controlled trial (RCT) (treated vs. control) is augmented with patients from
 #' real-world data (RWD) containing both clinical outcomes and covariates at the
-#' patient-level. The PSCL approach first estimates the propensity score for
+#' patient level. The PSCL approach first estimates the propensity score for
 #' every patient as the probability of the patient being in the RCT rather than
 #' the RWD, and then stratifies all patients into strata based on the estimated
 #' propensity scores. Within each propensity score stratum, a composite
@@ -75,6 +78,7 @@ NULL
 
 #' @title Example dataset
 #'
+#' @description
 #' Example dataset of a single arm study.
 #'
 #' @usage data(ex_dta)
@@ -82,19 +86,27 @@ NULL
 #' @keywords datasets
 #'
 #' @format A data frame with the following variables:
-#' \itemize{
+#'
+#' \describe{
 #'   \item{Group}{current, rwd}
 #'   \item{Y_Bin}{Binary outcome}
 #'   \item{Y_Con}{Continuous outcome}
 #'   \item{Y_Surv}{Survival outcome in days}
 #'   \item{Status}{Event status (0=alive, 1=dead)}
-#'   \item{V1-V7}{Covariates}
+#'   \item{V1}{Baseline covariate}
+#'   \item{V2}{Baseline covariate}
+#'   \item{V3}{Baseline covariate}
+#'   \item{V4}{Baseline covariate}
+#'   \item{V5}{Baseline covariate}
+#'   \item{V6}{Baseline covariate}
+#'   \item{V7}{Baseline covariate}
 #' }
 "ex_dta"
 
 
 #' @title Example dataset
 #'
+#' @description
 #' Example dataset of a randomized study.
 #'
 #' @usage data(ex_dta_rct)
@@ -102,10 +114,19 @@ NULL
 #' @keywords datasets
 #'
 #' @format A data frame with the following variables:
-#' \itemize{
+#'
+#' \describe{
 #'   \item{Group}{current, rwd}
 #'   \item{Arm}{control, treatment}
 #'   \item{Y_Con}{Continuous outcome}
-#'   \item{V1-V7}{Covariates}
+#'   \item{Y_Surv}{Survival outcome in days}
+#'   \item{Status}{Event status (0=alive, 1=dead)}
+#'   \item{V1}{Baseline covariate}
+#'   \item{V2}{Baseline covariate}
+#'   \item{V3}{Baseline covariate}
+#'   \item{V4}{Baseline covariate}
+#'   \item{V5}{Baseline covariate}
+#'   \item{V6}{Baseline covariate}
+#'   \item{V7}{Baseline covariate}
 #' }
 "ex_dta_rct"

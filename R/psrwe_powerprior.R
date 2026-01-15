@@ -10,9 +10,9 @@
 #'     \item{powerp}{Power prior model}
 #' }
 #'
-#' @param chains STAN parameter. Number of Markov chainsm
+#' @param chains STAN parameter. Number of Markov chains
 #' @param iter STAN parameter. Number of iterations
-#' @param warmup STAN parameter. Number of burnin.
+#' @param warmup STAN parameter. Number of burn-in.
 #' @param control STAN parameter. See \code{rstan::stan} for details.
 #' @param ... other options to call STAN sampling such as \code{thin},
 #'     \code{algorithm}. See \code{rstan::sampling} for details.#'
@@ -22,7 +22,8 @@
 #' @export
 #'
 rwe_stan <- function(lst_data,
-                     stan_mdl = c("powerps", "powerpsbinary", "powerp"),
+                     stan_mdl = c("powerps", "powerpsbinary", "powerp",
+                                  "powerps_wattcon"),
                      chains = 4, iter = 2000, warmup = 1000,
                      control = list(adapt_delta = 0.95), ...) {
 
@@ -102,11 +103,11 @@ psrwe_powerp <- function(dta_psbor, v_outcome = "Y",
     stopifnot(v_outcome %in% colnames(dta_psbor$data))
 
     ## save the seed from global if any then set random seed
-    old_seed <- NULL
+    # old_seed <- NULL
     if (!is.null(seed)) {
-        if (exists(".Random.seed", envir = .GlobalEnv)) {
-            old_seed <- get(".Random.seed", envir = .GlobalEnv)
-        }
+        # if (exists(".Random.seed", envir = .GlobalEnv)) {
+        #     old_seed <- get(".Random.seed", envir = .GlobalEnv)
+        # }
         set.seed(seed)
     }
 
@@ -146,15 +147,15 @@ psrwe_powerp <- function(dta_psbor, v_outcome = "Y",
     }
     rst_ctl <- get_post_theta(ctl_thetas, n_ctl)
 
-    ## reset the orignal seed back to the global or
+    ## reset the original seed back to the global or
     ## remove the one set within this session earlier.
-    if (!is.null(seed)) {
-        if (!is.null(old_seed)) {
-            invisible(assign(".Random.seed", old_seed, envir = .GlobalEnv))
-        } else {
-            invisible(rm(list = c(".Random.seed"), envir = .GlobalEnv))
-        }
-    }
+    # if (!is.null(seed)) {
+    #     if (!is.null(old_seed)) {
+    #         invisible(assign(".Random.seed", old_seed, envir = .GlobalEnv))
+    #     } else {
+    #         invisible(rm(list = c(".Random.seed"), envir = .GlobalEnv))
+    #     }
+    # }
 
     ## return
     rst <-  list(stan_rst = list(ctl_post = ctl_post,
@@ -167,6 +168,7 @@ psrwe_powerp <- function(dta_psbor, v_outcome = "Y",
                  Total_borrow = dta_psbor$Total_borrow,
                  Method       = "ps_pp",
                  Outcome_type = type,
+                 Prior_type   = prior_type,
                  is_rct       = is_rct)
 
     class(rst) <- get_rwe_class("ANARST")
@@ -182,8 +184,8 @@ psrwe_powerp <- function(dta_psbor, v_outcome = "Y",
 get_stan_data <- function(dta_psbor, v_outcome, prior_type) {
     f_curd <- function(i, d1, d0 = NULL) {
         cur_d <- c(N1    = length(d1),
-                   YBAR1 = mean(cur_d1),
-                   YSUM1 = sum(cur_d1))
+                   YBAR1 = mean(d1),
+                   YSUM1 = sum(d1))
 
         if (is.null(d0)) {
             cur_d <- c(cur_d,
@@ -192,9 +194,9 @@ get_stan_data <- function(dta_psbor, v_outcome, prior_type) {
                        SD0   = 0)
         } else {
             cur_d <- c(cur_d,
-                       N0    = length(cur_d0),
-                       YBAR0 = mean(cur_d0),
-                       SD0   = sd(cur_d0))
+                       N0    = length(d0),
+                       YBAR0 = mean(d0),
+                       SD0   = sd(d0))
         }
 
         list(stan_d = cur_d,
@@ -327,7 +329,7 @@ summary.PSRWE_RST <- function(object, ...) {
     }
 
     dtype <- object[[type]]$Overall_Estimate
-    if ("ps_km" == object$Method) {
+    if (object$Method %in% get_rwe_class("ANAMETHOD_KM")) {
         dtype <- data.frame(dtype) %>%
             filter(object$pred_tp == T)
     }
@@ -343,7 +345,7 @@ summary.PSRWE_RST <- function(object, ...) {
         citype <- cbind(object$CI[[type]]$Overall_Estimate)
 
         if (is.data.frame(citype)) {
-            if ("ps_km" == object$Method) {
+            if (object$Method %in% get_rwe_class("ANAMETHOD_KM")) {
                 citype <- cbind(citype,
                                 T = object[[type]]$Overall_Estimate$T)
 
@@ -364,7 +366,7 @@ summary.PSRWE_RST <- function(object, ...) {
     if (exists("INFER", object)) {
         hitype <- object$INFER[[type]]$Overall_InferProb
 
-        if ("ps_km" == object$Method) {
+        if (object$Method %in% get_rwe_class("ANAMETHOD_KM")) {
             hitype <- cbind(hitype,
                             T = object[[type]]$Overall_Estimate$T)
 
@@ -395,6 +397,7 @@ summary.PSRWE_RST <- function(object, ...) {
 #'
 #' @method print PSRWE_RST
 #'
+#' @return None (invisible \code{NULL})
 #'
 #' @export
 #'
@@ -406,14 +409,24 @@ print.PSRWE_RST <- function(x, ...) {
     rst_infer <- rst$INFER
 
     extra_1 <- ""
-    if ("ps_km" == x$Method) {
+    if (x$Method %in% get_rwe_class("ANAMETHOD_KM")) {
         extra_1 <- paste(" based on the survival probability at time ",
                          x$pred_tp, ",", sep = "")
     }
 
     if ("Effect" == rst_sum[1, "Type"]) {
-        extra_2 <- "treatment effect"
-        extra_2_param <- "theta_trt-theta_ctl"
+        if (x$Method %in% c("ps_pp", "ps_cl", "ps_km")) {
+            extra_2 <- "treatment effect"
+            extra_2_param <- "theta_trt-theta_ctl"
+        } else if(x$Method == "ps_lrk") {
+            extra_2 <- "log-rank statistic"
+            extra_2_param <- "sum[d_trt-E(d_trt)]"
+        } else if(x$Method == "ps_rmst") {
+            extra_2 <- "RMST statistic"
+            extra_2_param <- "auc(S_trt)-auc(S_ctl)"
+        } else {
+          stop("The method is not implemented.")
+        }
     } else {
         extra_2 <- "point estimate"
         extra_2_param <- "theta"
@@ -493,6 +506,7 @@ print.PSRWE_RST <- function(x, ...) {
 #'
 #' @method plot PSRWE_RST
 #'
+#' @return A plot of class in ggplot2
 #'
 #' @export
 #'
@@ -503,6 +517,12 @@ plot.PSRWE_RST <- function(x, ...) {
                   ps_cl = {
                       stop("This method is currently unavailable
                             for composite likelihood analysis.")
+                  },
+                  ps_lrk = {
+                      stop("This method is currently unavailable.")
+                  },
+                  ps_rmst = {
+                      stop("This method is currently unavailable.")
                   })
 
     rst

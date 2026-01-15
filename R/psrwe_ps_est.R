@@ -11,24 +11,30 @@
 #' @param v_covs Column names corresponding to covariates.
 #' @param v_grp Column name corresponding to group assignment.
 #' @param cur_grp_level Group level for the current study. Default is
-#'     \code{cur_grp_level = 1}. Ignored for single arm studies.
+#'     \code{cur_grp_level = 1}. Ignored for single-arm studies.
 #' @param v_arm Column name corresponding to arm assignment.
 #' @param ctl_arm_level Arm level for the control arm. Ignored for single-arm
 #'     studies.
 #' @param stra_ctl_only Create strata by control arm patients only. Default
-#'     \code{TRUE}. Ignored by single arm studies. For randomized studies, when
+#'     \code{TRUE}. Ignored by single-arm studies. For randomized studies, when
 #'     \code{stra_ctl_only} is \code{FALSE}, strata are created based on the PS
 #'     scores of the entire current study patients.
 #' @param nstrata Number of PS strata to be created.
 #' @param ps_method Method to calculate propensity scores. Can be set to
 #'     \code{logistic} for logistic regression or \code{randomforest} for a
 #'     random forest approach.
+#' @param trim_ab Trim external subjects who are above or below the
+#'     range of current study. Default \code{both} trims both above and below.
+#'     Other options include \code{above} for above only, \code{below} for
+#'     below only, and \code{none} for no trimming.
+#' @param .drop_arg_fml internal use to drop arguments and call, this is
+#'     only used in cjk.
 #' @param ... Additional parameters for calculating the propensity score to be
 #'     used in \code{randomForest} or \code{glm} .
 #'
 #' @return A list of class \code{PSRWE_DAT} with items:
 #'
-#' \itemize{
+#' \describe{
 #'   \item{data}{Original data with column \code{_ps_} for estimated PS scores
 #'               and \code{_strata_} for PS stratum added.}
 #'   \item{ps_fml}{PS formula for estimated PS scores.}
@@ -54,14 +60,29 @@ psrwe_est <- function(data,
                        v_arm         = NULL,
                        ctl_arm_level = NULL,
                        stra_ctl_only = TRUE,
-                       nstrata       = 5, ...) {
+                       nstrata       = 5,
+                       trim_ab       = c("both", "above", "below", "none"),
+		       .drop_arg_fml = FALSE,
+                       ...) {
 
+    ## save arguments and call first (overwrite the drop if in cjk)
+    if (.drop_arg_fml) {
+        call_arg <- NA
+        call_fml <- NA
+    } else {
+        call_arg <- c(as.list(environment()), list(...))
+        call_arg[["data"]] <- NA
+        call_fml <- as.character(match.call()[[1]])
+    }
+
+    ## prepare
     if (!identical("data.frame", class(data))) {
         warning("data should be a data.frame object")
     }
 
     data      <- as.data.frame(data)
     ps_method <- match.arg(ps_method)
+    trim_ab   <- match.arg(trim_ab)
 
     ## Generate formula
     if (is.null(ps_fml)) {
@@ -122,7 +143,8 @@ psrwe_est <- function(data,
         d1_ps   <- all_ps[which(d1_inx)]
         strata  <- rwe_cut(d1_ps, all_ps,
                            breaks   = nstrata,
-                           keep_inx = keep_inx)
+                           keep_inx = keep_inx,
+                           trim_ab  = trim_ab)
 
         data[["_strata_"]] <- factor(strata,
                                      levels = c(1:nstrata),
@@ -139,7 +161,10 @@ psrwe_est <- function(data,
                 ps_fml    = ps_fml,
                 ps_method = ps_method,
                 is_rct    = is_rct,
-                nstrata   = nstrata)
+                nstrata   = nstrata,
+                trim_ab   = trim_ab,
+                Call_arg  = list(psrwe_est = call_arg),
+                Call_fml  = list(psrwe_est = call_fml))
 
     class(rst) <- get_rwe_class("DWITHPS")
     return(rst)
@@ -147,28 +172,29 @@ psrwe_est <- function(data,
 
 #' @title Summarize PS estimation and stratification results
 #'
-#' @description Get number of subjects and the distances of PS distributions for
-#'   each PS stratum.
+#' @description Get the number of subjects and the distances of PS
+#'   distributions for each PS stratum.
 #'
 #' @inheritParams get_distance
 #'
 #' @param object A list of class \code{PSRWE_DAT} that is generated using
 #'   the \code{\link{psrwe_est}} function.
-#' @param min_n0 threshold for number of external subjects, below which the
+#' @param min_n0 threshold for the number of external subjects, below which the
 #'   external data in the current stratum will be ignored by setting the PS
 #'   distance to 0. Default value 10.
 #' @param ... Additional parameters.
 #'
 #' @return A list with columns:
-#'   \itemize{
+#'
+#' \describe{
 #'     \item{Summary}{A data frame with Stratum, number of subjects in RWD,
 #'     current study, number of subjects in control and treatment arms for RCT
 #'     studies, and distance in PS distributions.}
 #'
-#'     \item{Overall}{A data frame with overall number of not-trimmed subjects
-#'     in RWD, number of patients in current study, number of subjects in
-#'     control and treatment arms for RCT studies, and distance in PS
-#'     distributions.}
+#'     \item{Overall}{A data frame with the overall number of not-trimmed
+#'     subjects in RWD, number of patients in the current study, number of
+#'     subjects in control and treatment arms for RCT studies, and distance
+#'     in PS distributions.}
 #'
 #'     \item{N}{Vector of total number of total RWD patients, number of trimmed
 #'     RWD patients, and total number of current study patients.}
@@ -214,6 +240,7 @@ summary.PSRWE_DTA <- function(object,
     nstrata <- object$nstrata
     is_rct  <- object$is_rct
     strata  <- levels(dataps[["_strata_"]])
+    trim_ab <- object$trim_ab
 
     if (is_rct) {
         col_n  <- c("N_RWD",     "N_RWD_CTL", "N_RWD_TRT",
@@ -226,6 +253,12 @@ summary.PSRWE_DTA <- function(object,
     n_trim    <- length(which(is.na(dataps[["_strata_"]])))
     n_rwd     <- length(which(0 == dataps[["_grp_"]]))
     n_current <- nrow(dataps) - n_rwd
+
+    ps_range_current <- range(dataps[["_ps_"]][dataps[["_grp_"]] == 1])
+    n_rwd_below <- sum(dataps[["_ps_"]][dataps[["_grp_"]] == 0] <
+                       ps_range_current[1])
+    n_rwd_above <- sum(dataps[["_ps_"]][dataps[["_grp_"]] == 0] >
+                       ps_range_current[2])
 
     rst <- NULL
     for (i in strata) {
@@ -285,7 +318,10 @@ summary.PSRWE_DTA <- function(object,
                                         rst_overall),
                 N               = c(RWD     = n_rwd,
                                     Current = n_current,
-                                    Trimmed = n_trim),
+                                    Trimmed = n_trim,
+                                    RWD_below_current = n_rwd_below,
+                                    RWD_above_current = n_rwd_above,
+                                    Trim_ab = trim_ab),
                 ps_fml          = object$ps_fml,
                 Distance_metric = metric[1])
 
@@ -305,6 +341,7 @@ summary.PSRWE_DTA <- function(object,
 #'
 #' @method print PSRWE_DTA
 #'
+#' @return A list from \code{summary(x)} with additional information
 #'
 #' @export
 #'
@@ -336,12 +373,17 @@ print.PSRWE_DTA <- function(x, ...) {
 #' @description S3 method for visualizing PS adjustment
 #'
 #' @param x Class \code{RWE_DWITHPS} created by \code{psrwe_*} functions
-#' @param plot_type Types of plots. \itemize{\item{ps}{PS density plot}
-#'     \item{balance}{Covariate balance plot}
-#'     \item{diff}{Standardized mean differences, metric = std or astd}}
+#' @param plot_type Types of plots.
+#' \describe{
+#'   \item{ps}{PS density plot}
+#'   \item{balance}{Covariate balance plot}
+#'   \item{diff}{Standardized mean differences, metric = std or astd}
+#' }
 #' @param ... Additional parameter for the plot
 #'
 #' @method plot PSRWE_DTA
+#'
+#' @return A plot of class in ggplot2
 #'
 #' @export
 #'
@@ -359,7 +401,7 @@ plot.PSRWE_DTA <- function(x, plot_type = c("ps", "balance", "diff"), ...) {
 #' @description
 #' Cut a sequence of numbers into bins.
 #'
-#' The cut points are chosen such that there will with equal numbers in each bin
+#' The cut points are chosen such that there will be equal numbers in each bin
 #' for \code{x}. By default, values of \code{y} that are outside the range of
 #' \code{x} will be excluded from the bins, unless they are in the
 #' \code{keep_inx}.
@@ -370,6 +412,10 @@ plot.PSRWE_DTA <- function(x, plot_type = c("ps", "balance", "diff"), ...) {
 #' @param keep_inx Indices of y that will be categorized as 1 or the largest bin
 #'     even if their values are out of range of x, i.e. the y's that will not be
 #'     trimmed
+#' @param trim_ab Trim external subjects who are above or below the
+#'     range of current study. Default \code{both} trims both above and below.
+#'     Other options include \code{above} for above only, \code{below} for
+#'     below only, and \code{none} for no trimming.
 #'
 #' @return A vector of stratum assignment for \code{y}. The y's that are outside
 #'     the range of \code{x} and not in \code{keep_inx} are assigned \code{NA}
@@ -384,9 +430,24 @@ plot.PSRWE_DTA <- function(x, plot_type = c("ps", "balance", "diff"), ...) {
 #' @export
 #'
 #'
-rwe_cut <- function(x, y = x, breaks = 5, keep_inx = NULL) {
+rwe_cut <- function(x, y = x, breaks = 5, keep_inx = NULL,
+                    trim_ab = c("both", "above", "below", "none")) {
     cuts    <- quantile(x, seq(0, 1, length = breaks + 1))
     cuts[1] <- cuts[1] - 1e-100
+
+    ## Overwrite cuts[1] and cuts[breaks]
+    trim_ab <- match.arg(trim_ab)
+    switch(trim_ab,
+           none = {
+             cuts[1] <- -Inf
+             cuts[breaks + 1] <- Inf
+           },
+           above = {
+             cuts[1] <- -Inf
+           },
+           below = {
+             cuts[breaks + 1] <- Inf
+           })
 
     rst     <- rep(NA, length(y))
     for (i in 2:length(cuts)) {

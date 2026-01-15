@@ -3,26 +3,29 @@
 \docType{data}
 \name{ex_dta}
 \alias{ex_dta}
-\title{Example dataset
-
-Example dataset of a single arm study.}
+\title{Example dataset}
 \format{
 A data frame with the following variables:
-\itemize{
+
+\describe{
   \item{Group}{current, rwd}
   \item{Y_Bin}{Binary outcome}
   \item{Y_Con}{Continuous outcome}
   \item{Y_Surv}{Survival outcome in days}
   \item{Status}{Event status (0=alive, 1=dead)}
-  \item{V1-V7}{Covariates}
+  \item{V1}{Baseline covariate}
+  \item{V2}{Baseline covariate}
+  \item{V3}{Baseline covariate}
+  \item{V4}{Baseline covariate}
+  \item{V5}{Baseline covariate}
+  \item{V6}{Baseline covariate}
+  \item{V7}{Baseline covariate}
 }
 }
 \usage{
 data(ex_dta)
 }
 \description{
-Example dataset
-
 Example dataset of a single arm study.
 }
 \keyword{datasets}

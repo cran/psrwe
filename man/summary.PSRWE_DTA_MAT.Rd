@@ -14,14 +14,16 @@ the \code{\link{psrwe_match}} function.}
 }
 \value{
 A list with columns:
-  \itemize{
+
+\describe{
 
     \item{Summary}{A data frame with Stratum (defined by covariates), number
     of subjects in RWD, current study, number of subjects in control and
     treatment arms for RCT studies.}
 
-    \item{Overall}{A data frame with overall number of not-trimmed subjects
-    in RWD, number of patients in current study, number of subjects in
+    \item{Overall}{A data frame with the overall number of not-trimmed
+    subjects
+    in RWD, number of patients in the current study, number of subjects in
     control and treatment arms for RCT studies.}
 
     \item{N}{Vector of total number of total RWD patients, number of trimmed

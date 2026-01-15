@@ -20,7 +20,9 @@ get_rwe_class <- function(c_str) {
          omkss     = "one minus Kolmogorov-Smirnov statistic",
          n_current = "the number of current control subjects",
          distance  = "the distance in PS distributions",
-         inverse_distance = "one minus the inverse of the distance in PS distributions"
+         inverse_distance = "one minus the inverse of the distance in PS distributions",
+         ANAMETHOD = c("ps_pp", "ps_cl", "ps_km", "ps_lrk", "ps_rmst"),
+         ANAMETHOD_KM = c("ps_km", "ps_lrk", "ps_rmst")
          )
 }
 
@@ -66,11 +68,11 @@ get_ps <- function(dta,
 
 #' @title Get number of subjects borrowed
 #'
-#' @param total_borrow integer. Target number of subjects to be borroqwed.
-#' @param ns0 vector. Number of subjects in historical data (control) arm for
-#'   each stratum.
-#' @param rs vector. Similarity measure; for example, overlapping coefficient
+#' @param total_borrow integer. Target number of subjects to be borrowed.
+#' @param ns0 vector. Number of subjects in the historical data (control) arm
 #'   for each stratum.
+#' @param rs vector. Similarity measure; for example, the overlapping
+#'   coefficient for each stratum.
 #' @param m_lambda character. Method to split \code{total_borrow}, which can be
 #'   based on distance (\code{m_lambda = "dist"}) or inverse distance
 #'   (\code{m_lambda = "inverse"}).
@@ -82,7 +84,8 @@ get_ps <- function(dta,
 get_aborrow <- function(total_borrow, ns0, ns1, rs,
                         m_lambda = c("distance",
                                      "inverse_distance",
-                                     "n_current"),
+                                     "n_current",
+                                     "n_external"),
                         ...) {
 
     m_lambda   <- match.arg(m_lambda)
@@ -96,6 +99,9 @@ get_aborrow <- function(total_borrow, ns0, ns1, rs,
                          },
                          n_current = {
                              proportion <- ns1 / sum(ns1)
+                         },
+                         n_external = {
+                             proportion <- ns0 / sum(ns0)
                          })
 
     borrow     <- apply(cbind(ns0, total_borrow * proportion),
@@ -170,14 +176,14 @@ get_observed <- function(data, v_covs) {
         group_by(Group, Arm, Stratum) %>%
         summarize(N      = n(),
                   Mean   = mean(Y),
-                  StdErr = sd(Y))
+                  SD     = sd(Y))
 
     rst2 <- data %>%
         mutate(Stratum = "Overall") %>%
         group_by(Group, Arm, Stratum) %>%
         summarize(N      = n(),
                   Mean   = mean(Y),
-                  StdErr = sd(Y))
+                  SD     = sd(Y))
 
     rst <- data.frame(rbind(rst1, rst2))
     rst
@@ -224,6 +230,8 @@ plot_ps <- function(data_withps,
                     overall_inc = TRUE,
                     add_text = TRUE,
                     facet_scales = "free_y",
+                    transparency_alpha = 0.2,
+                    fill_manual_color = c("gray20", "gray80"),
                     ...) {
 
     N0 <- N1 <- Dist <- Ps <- Group <- NULL
@@ -267,7 +275,7 @@ plot_ps <- function(data_withps,
     all_data$Group <- as.factor(all_data$Group)
 
     rst <- ggplot(data = all_data, aes(x = Ps)) +
-        geom_density(alpha = 0.2,
+        geom_density(alpha = transparency_alpha,
                      aes(group = Group,
                          fill  = Group,
                          linetype = Group),
@@ -276,7 +284,7 @@ plot_ps <- function(data_withps,
         labs(x = "Propensity Score", y = "Density") +
         scale_y_continuous(breaks = NULL) +
         scale_x_continuous(limits = xlim) +
-        scale_fill_manual(values = c("gray20", "gray80")) +
+        scale_fill_manual(values = fill_manual_color) +
         theme_bw() +
         theme(strip.background = element_blank(),
               panel.grid = element_blank(),
@@ -299,7 +307,9 @@ plot_ps <- function(data_withps,
 #'
 #' @noRd
 plot_balance_fac <- function(dtaps, v,
-                             overall_inc = TRUE) {
+                             overall_inc = TRUE,
+                             transparency_alpha = 0.4,
+                             fill_manual_color = c("gray20", "gray80")) {
 
     cur_d <- get_freq_tbl(dtaps,
                           var_groupby = c("Strata", "Group"),
@@ -319,13 +329,13 @@ plot_balance_fac <- function(dtaps, v,
     cur_d$Value <- as.factor(cur_d$Value)
 
     rst <- ggplot(data = cur_d, aes(x = .data$Value, y = .data$Freq)) +
-        geom_bar(alpha = 0.4,
+        geom_bar(alpha = transparency_alpha,
                  stat = "identity",
                  position = "dodge",
                  color = "black",
                  aes(group = .data$Group,
                      fill  = .data$Group)) +
-        scale_fill_manual(values = c("gray20", "gray80")) +
+        scale_fill_manual(values = fill_manual_color) +
         scale_y_continuous(breaks = NULL, limits = c(0, 1)) +
         labs(x = "", y = "") +
         facet_grid(Strata ~ .)
@@ -339,7 +349,9 @@ plot_balance_fac <- function(dtaps, v,
 #' @noRd
 plot_balance_cont <- function(dtaps, v, strata,
                               overall_inc = TRUE,
-                              facet_scales = "free_y") {
+                              facet_scales = "free_y",
+                              transparency_alpha = 0.2,
+                              fill_manual_color = c("gray20", "white")) {
 
   Value <- Group <- NULL
   cur_d <- NULL
@@ -363,13 +375,13 @@ plot_balance_cont <- function(dtaps, v, strata,
   cur_d$Group <- as.factor(cur_d$Group)
 
   rst <- ggplot(data = cur_d, aes(x = Value)) +
-    geom_density(alpha = 0.2,
+    geom_density(alpha = transparency_alpha,
                  aes(group = Group,
                      fill  = Group,
                      linetype = Group),
                  na.rm = TRUE) +
     scale_y_continuous(breaks = NULL) +
-    scale_fill_manual(values = c("gray20", "white")) +
+    scale_fill_manual(values = fill_manual_color) +
     labs(x = "", y = "") +
     facet_grid(Strata ~ ., scales = facet_scales)
 
@@ -386,6 +398,10 @@ plot_balance <- function(data_withps,
                          facet_scales = "free_y",
                          label_cov = v_cov,
                          legend_width = 0.08,
+                         fac_transparency_alpha = 0.4,
+                         fac_fill_manual_color = c("gray20", "gray80"),
+                         cont_transparency_alpha = 0.2,
+                         cont_fill_manual_color = c("gray20", "white"),
                          ...) {
 
     if (is.null(v_cov)) {
@@ -411,11 +427,15 @@ plot_balance <- function(data_withps,
     rst <- list()
     for (v in v_cov) {
         if (is.factor(dtaps[[v]])) {
-            cur_p <- plot_balance_fac(dtaps, v, overall_inc = overall_inc)
+            cur_p <- plot_balance_fac(dtaps, v, overall_inc = overall_inc,
+                                      transparency_alpha = fac_transparency_alpha,
+                                      fill_manual_color = fac_fill_manual_color)
         } else {
             cur_p <- plot_balance_cont(dtaps, v, strata = strata,
                                        overall_inc = overall_inc,
-                                       facet_scales = facet_scales)
+                                       facet_scales = facet_scales,
+                                       transparency_alpha = cont_transparency_alpha,
+                                       fill_manual_color = cont_fill_manual_color)
         }
 
         cur_p <- cur_p +
@@ -576,7 +596,6 @@ get_strata <- function(data, strata_covs  = NULL) {
 
 #' @title Print information
 #'
-#'
 #' @noRd
 #'
 cat_ps_dta <- function(x, rst_sum) {
@@ -588,9 +607,23 @@ cat_ps_dta <- function(x, rst_sum) {
                 "current study subjects are used to",
                 "estimate propensity",
                 "scores by", x$ps_method, "model.",
+                sep = " ")
+
+    if (rst_sum$N["Trim_ab"] != "none") {
+        ss <- paste(ss,
                 "A total of", rst_sum$N["Trimmed"],
                 "RWD subjects are trimmed",
+                paste("(trim_ab=", rst_sum$N["Trim_ab"], ")",
+                      sep = ""),
                 "and excluded from the final analysis.",
+                paste("(PS values of ", rst_sum$N["RWD_below_current"],
+                      " and ", rst_sum$N["RWD_above_current"],
+                      " RWD are below and above current study)",
+                      sep = ""),
+                sep = " ")
+    }
+
+    ss <- paste(ss,
                 "The following covariates are adjusted in the propensity",
                 "score model:",
                 paste(all.vars(x$ps_fml[-1]), collapse = ", "),
@@ -684,6 +717,7 @@ get_ps_cl_km <- function(dta_psbor,
                  Borrow    = dta_psbor$Borrow,
                  Total_borrow = dta_psbor$Total_borrow,
                  is_rct       = is_rct)
+    return(rst)
 }
 
 #' Summarize overall theta
@@ -698,7 +732,7 @@ get_overall_est <- function(ts1, weights, ts2 = NULL) {
         sds0   <- ts1[, 2]
     } else {
         theta0 <- ts1[, 1] - ts2[, 1]
-        sds0   <- sqrt(ts1[, 2] + ts2[, 2])
+        sds0   <- sqrt(ts1[, 2]^2 + ts2[, 2]^2)
     }
 
     ws         <- weights / sum(weights)
@@ -817,7 +851,6 @@ plot_pp_rst <- function(x,
 
 #' @title Plot KM at all time points
 #'
-#'
 #' @noRd
 #'
 plot_km_rst <- function(x,
@@ -825,7 +858,12 @@ plot_km_rst <- function(x,
                         ylab = "Survival Probability",
                         add_ci = TRUE,
                         add_stratum = FALSE,
+                        km_lwd = 1,
+                        km_ci_lwd = 1,
                         ...) {
+
+    ## check args
+    args <- list(...)
 
     ## prepare data
     if (x$is_rct){
@@ -861,12 +899,23 @@ plot_km_rst <- function(x,
 
     ## CI
     if (add_ci) {
-      ci  <- get_ci_km(rst$Mean, rst$StdErr, ...)
+      if ("conf_int" %in% names(args)) {
+          conf_int <- args[['conf_int']]
+      } else {
+          conf_int <- 0.95
+      }
+ 
+      if ("conf_type" %in% names(args)) {
+          conf_type <- args[['conf_type']]
+      } else {
+          conf_type <- "plain"
+      }
+
+      ci  <- get_kmci_wald(rst$Mean, rst$StdErr, conf_int, conf_type, ...)
       rst <- cbind(rst, Lower = ci$Lower, Upper = ci$Upper)
     }
 
     ## check arguments
-    args <- list(...)
     if ("xlim" %in% names(args)) {
         xlim <- args[['xlim']]
     } else {
@@ -887,7 +936,8 @@ plot_km_rst <- function(x,
     # lt_a <- rep(2, length(rst$Arm))
     # lt_a[grep(".* Overall$", rst$Arm)] <- 1
     rst_plt <- ggplot(data = rst) +
-        geom_step(aes(x = T, y = Mean, col = Arm, linetype = Arm)) +
+        geom_step(aes(x = T, y = Mean, col = Arm, linetype = Arm),
+                      size = km_lwd) +
         scale_y_continuous(limits = ylim) +
         scale_x_continuous(limits = xlim) +
         labs(x = xlab, y = ylab) +
@@ -895,8 +945,10 @@ plot_km_rst <- function(x,
 
     if (add_ci) {
       rst_plt <- rst_plt +
-          geom_step(aes(x = T, y = Lower, col = Arm), linetype = 3) +
-          geom_step(aes(x = T, y = Upper, col = Arm), linetype = 3)
+          geom_step(aes(x = T, y = Lower, col = Arm),
+                        size = km_ci_lwd, linetype = 3) +
+          geom_step(aes(x = T, y = Upper, col = Arm),
+                        size = km_ci_lwd, linetype = 3)
     }
 
     rst_plt

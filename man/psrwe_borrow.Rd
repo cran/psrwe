@@ -7,7 +7,8 @@
 psrwe_borrow(
   dtaps,
   total_borrow,
-  method = c("distance", "inverse_distance"),
+  method = c("distance", "inverse_distance", "n_current", "n_external"),
+  .drop_arg_fml = FALSE,
   ...
 )
 }
@@ -19,7 +20,13 @@ psrwe_borrow(
 \item{method}{Method to split \code{total_borrow} for a class
 \code{PSRWE_DTA} object, which can be based on distance (\code{method =
 "distance"}) or inverse distance (\code{method = "inverse_distance"}).
+Other possible options include \code{"n_current"} and \code{"n_external"}
+that use the proportion of stratum sample size based on the current and
+external data, respectively.
 Ignored for class \code{PSRWE_DTA_MAT} object.}
+
+\item{.drop_arg_fml}{internal use to drop arguments and call, this is
+only used in cjk.}
 
 \item{...}{Additional parameters for \code{\link{summary.PSRWE_DTA}}.}
 }
@@ -27,19 +34,19 @@ Ignored for class \code{PSRWE_DTA_MAT} object.}
 A class \code{PSRWE_BORR} list. It appends the following items to
     the \code{dtaps}:
 
-  \itemize{
+\describe{
 
     \item{Proportion}{Proportion splitting the number of total borrow among
     strata.}
 
-    \item{N_Borrow}{The number of to be borrowed subjects in each stratum.}
+    \item{N_Borrow}{The number of subjects to be borrowed in each stratum.}
 
     \item{Alpha}{Weight parameter value in each stratum.}
 }
 }
 \description{
 Based on PS distances or number of current control subjects, split the total
-number of subjects to be borrowed from the external data source to each
+number of subjects to be borrowed from the external data source for each
 stratum
 }
 \examples{
