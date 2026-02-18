@@ -1,6 +1,6 @@
-9f8b3dd42e9f1dbb3fd46f41818639d4 *DESCRIPTION
-e33e7fda988c0cff9bb675174d0eb8ff *NAMESPACE
-802a1207f632b95047d51790b0353bf8 *NEWS.md
+2907a11fa159f15a5c804a26bd823b4a *DESCRIPTION
+876ea948a30f4f151e78a46044a259e0 *NAMESPACE
+f09ee19e4f9104f0998c04622dc5d2ab *NEWS.md
 208a081491df00bf71cbc4c828bc104a *R/000_globalVariables.r
 2bd153ef50351080b41ff4bd247aef33 *R/RcppExports.R
 44f07fe6764df62149a30f7b014ae426 *R/psrwe_borrow.R
@@ -9,7 +9,7 @@ e33e7fda988c0cff9bb675174d0eb8ff *NAMESPACE
 a71b8a123d0cd59819c3d367e77a60b0 *R/psrwe_distance.R
 22e1116112c6925e3e6724722e90f196 *R/psrwe_infer.R
 dd6760f43afc6974f23d40bd63b15a2e *R/psrwe_outana.R
-6804f4e353ed808ed10ccc886afb01e9 *R/psrwe_package.R
+8defb044613e01c92c28218affcdba2e *R/psrwe_package.R
 b8c43aa5ce1e4452d8140e660e684991 *R/psrwe_powerprior.R
 660b32836402eed5d6ff9604596654d7 *R/psrwe_powerprior_watt.R
 410da7521211c23c1a1d831cfc402536 *R/psrwe_ps_est.R
@@ -17,14 +17,14 @@ a6cd9295e52846a216af920e8dda5386 *R/psrwe_ps_match.R
 cc20da480358d43d186625059b6b2a0d *R/psrwe_survkm.R
 8cac4a84f34ea5cafe343d018881e8c0 *R/psrwe_survlrk.R
 7a30540595ad2ec12e93a6a1a4f9de17 *R/psrwe_survrmst.R
-58f6c1f3cf97f672e36da78701693024 *R/psrwe_tools.R
+fc8b297269e92cc91e79cee858f87bea *R/psrwe_tools.R
 74d4cfb9e4b53acf07b488a1ce5c76e0 *R/psrwe_tools_cjk.R
 54f5e9bdd07e28cd2b78abad940a5fc0 *R/psrwe_tools_lrkrmst.R
 ba8aa43d2a8338c9906875990ee8ee14 *R/psrwe_tools_sjk.R
 cf899a6a5bf6ceb6ab8e2061eb486b0f *R/stanmodels.R
 13eb964ad71965795769f6051f9ba270 *R/toolkit.R
 95a932cc03ed80fcdcb53038fadecf17 *README.md
-533839446f70bde34a1050627ce80586 *build/partial.rdb
+b54db8794555342c4feee5fe0b1b8f5b *build/partial.rdb
 f7fb1ca3cb236cb836b71f359690e7d5 *build/vignette.rds
 52166ecd4ec04cd0771893d0cff454f6 *cleanup
 1cc60bdd8610449d30184e0bb374bf46 *configure
@@ -43,6 +43,7 @@ f8834a56c306fe3e29478c62df6e87bf *demo/sec_4_7_ex.r
 50d1fdacb85459d985d237dcebe92b3a *demo/sec_5_2_ex.r
 673a1421fbc6559aaa553d0fe9159909 *demo/sec_6_1_ex.r
 d4652f7224472f5aa56479b6196f47db *demo/sec_6_2_ex.r
+4f27cb3c0383d866b04d1f1c3e217eeb *inst/CITATION
 558a1ad41673e793455aeeee17f43291 *inst/demo_bs/ex_1_single_bin.r
 ee146470fead51494e5eb69343f79797 *inst/demo_bs/ex_2_rct_cont.r
 886d87615ca816859eff079fb265b93a *inst/demo_bs/ex_3_single_match.r
@@ -57,6 +58,7 @@ fd3748bffa0b084fa8e2fe7495c67889 *inst/demo_cjk/ex_4_single_tte.r
 ffaa6209ba462f6a60633356541c533f *inst/demo_cjk/ex_5_rct_tte.r
 42010394adc99be3686d9fbf4ebb2fc8 *inst/demo_cjk/ex_6_rct_tte_lrk.r
 d6cc022335989f06c02005f57defdbfa *inst/demo_cjk/ex_7_rct_tte_rmst.r
+ccd26b93c06a541db24b51d40969585d *inst/doc/index.html
 2264178b6f8163467f3f2f45d101174a *inst/doc/ps_matching.R
 02b59e1360c9ae05da66424413e74c31 *inst/doc/ps_matching.Rmd
 e08a2dcbc6795d66e85a876c5732489e *inst/doc/ps_matching.html

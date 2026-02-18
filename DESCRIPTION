@@ -1,7 +1,7 @@
 Package: psrwe
 Title: PS-Integrated Methods for Incorporating Real-World Evidence in
         Clinical Studies
-Version: 3.2
+Version: 3.2-1
 Authors@R: c(
     person(given = "Chenguang", family = "Wang",
            role = c("aut")),
@@ -45,10 +45,10 @@ NeedsCompilation: yes
 RoxygenNote: 7.3.3
 VignetteBuilder: knitr
 Maintainer: Wei-Chen Chen <wccsnow@gmail.com>
-Packaged: 2026-01-11 02:19:32 UTC; snoweye
+Packaged: 2026-02-18 18:05:37 UTC; Wei-Chen.Chen
 Author: Chenguang Wang [aut],
   Trustees of Columbia University [cph] (tools/make_cpp.R,
     R/stanmodels.R),
   Wei-Chen Chen [aut, cre]
 Repository: CRAN
-Date/Publication: 2026-01-15 18:00:08 UTC
+Date/Publication: 2026-02-18 20:50:02 UTC
